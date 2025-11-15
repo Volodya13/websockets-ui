@@ -37,7 +37,7 @@ export type AttackStatus = 'miss' | 'shot' | 'killed';
 export interface WebSocketMessage<T> {
   type: string;
   data: T;
-  id: 0;
+  id?: 0;
 }
 
 export interface RegRequestData {
