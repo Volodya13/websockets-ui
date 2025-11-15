@@ -17,91 +17,99 @@ import {
   handleRegistration,
 } from '../lib/handlers';
 
-const PORT = process.env.PORT || 8080;
+export class Ws {
+  private readonly wss: WebSocketServer;
 
-const wss = new WebSocketServer({ port: Number(PORT) });
+  constructor(port: number) {
+    this.wss = new WebSocketServer({ port: port });
 
-console.log(`WebSocket started on a port: ${PORT}`);
+    console.log(`WebSocket started on a port: ${port}`);
 
-wss.on('connection', (ws) => {
-  console.log('New WebSocket connection established');
+    this.wss.on('connection', (ws) => {
+      console.log('New WebSocket connection established');
 
-  ws.on('message', (message) => {
-    try {
-      const parsedMessage: WebSocketMessage<any> = JSON.parse(
-        message.toString(),
-      );
-      console.log('The message is:', parsedMessage);
+      ws.on('message', (message) => {
+        try {
+          const parsedMessage: WebSocketMessage<any> = JSON.parse(
+            message.toString(),
+          );
+          console.log('The message is:', parsedMessage);
 
-      switch (parsedMessage.type) {
-        case 'reg':
-          handleRegistration(
-            ws,
-            parsedMessage as WebSocketMessage<RegRequestData>,
-            wss,
-          );
-          break;
-        case 'create_room':
-          handleCreateRoom(
-            ws,
-            parsedMessage as WebSocketMessage<CreateRoomRequestData>,
-            wss,
-          );
-          break;
-        case 'add_user_to_room':
-          handleAddUserToRoom(
-            ws,
-            parsedMessage as WebSocketMessage<AddUserToRoomRequestData>,
-            wss,
-          );
-          break;
-        case 'add_ships':
-          handleAddShips(
-            ws,
-            parsedMessage as WebSocketMessage<AddShipsRequestData>,
-          );
-          break;
-        case 'attack':
-          handleAttack(
-            ws,
-            parsedMessage as WebSocketMessage<AttackRequestData>,
-          );
-          break;
-        case 'randomAttack':
-          handleRandomAttack(
-            ws,
-            parsedMessage as WebSocketMessage<RandomAttackRequestData>,
-          );
-          break;
-        default:
-          console.warn('Unknown message type:', parsedMessage.type);
+          switch (parsedMessage.type) {
+            case 'reg':
+              handleRegistration(
+                ws,
+                parsedMessage as WebSocketMessage<RegRequestData>,
+                this.wss,
+              );
+              break;
+            case 'create_room':
+              handleCreateRoom(
+                ws,
+                parsedMessage as WebSocketMessage<CreateRoomRequestData>,
+                this.wss,
+              );
+              break;
+            case 'add_user_to_room':
+              handleAddUserToRoom(
+                ws,
+                parsedMessage as WebSocketMessage<AddUserToRoomRequestData>,
+                this.wss,
+              );
+              break;
+            case 'add_ships':
+              handleAddShips(
+                ws,
+                parsedMessage as WebSocketMessage<AddShipsRequestData>,
+              );
+              break;
+            case 'attack':
+              handleAttack(
+                ws,
+                parsedMessage as WebSocketMessage<AttackRequestData>,
+              );
+              break;
+            case 'randomAttack':
+              handleRandomAttack(
+                ws,
+                parsedMessage as WebSocketMessage<RandomAttackRequestData>,
+              );
+              break;
+            default:
+              console.warn('Unknown message type:', parsedMessage.type);
 
+              ws.send(
+                JSON.stringify({
+                  type: 'error',
+                  data: { errorText: 'Unknown message type' },
+                  id: parsedMessage.id,
+                }),
+              );
+              break;
+          }
+        } catch (error) {
+          console.error('Error:', error);
           ws.send(
             JSON.stringify({
               type: 'error',
-              data: { errorText: 'Unknown message type' },
-              id: parsedMessage.id,
+              data: { errorText: 'Invalid format JSON' },
+              id: 0,
             }),
           );
-          break;
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      ws.send(
-        JSON.stringify({
-          type: 'error',
-          data: { errorText: 'Invalid format JSON' },
-          id: 0,
-        }),
-      );
-    }
-  });
+        }
+      });
 
-  ws.on('close', () => {
-    console.log('WebSocket disconnected');
-  });
+      ws.on('close', () => {
+        console.log('WebSocket disconnected');
+      });
 
-  ws.on('error', (error) => {
-    console.error('Error WebSocket:', error);
-  });
-});
+      ws.on('error', (error) => {
+        console.error('Error WebSocket:', error);
+      });
+    });
+  }
+
+  close() {
+    this.wss.close();
+  }
+}
